@@ -1,0 +1,12 @@
+# Minimal package to use dcase2020 task2 baseline.
+matplotlib==3.0.3
+numpy==1.16.0
+PyYAML==5.1
+scikit-learn==0.20.2
+librosa==0.6.0
+audioread==2.1.5
+setuptools==41.0.0
+tqdm==4.23.4
+torch==1.1.0
+torchsummary==1.5.1
+numba==0.48
