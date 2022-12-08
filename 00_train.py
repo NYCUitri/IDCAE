@@ -153,8 +153,8 @@ def list_to_vector_array(file_list,
         nm_idx = random.choice(nm_indices)
         nm_label[i][nm_idx] = 1
 
-    from reconstruct_img import reconstruct_spectrogram
-    reconstruct_spectrogram([features[0], features[1], features[2]], ["features0", "features1", "features2"])
+    #from reconstruct_img import reconstruct_spectrogram
+    #reconstruct_spectrogram([features[0], features[1], features[2]], ["features0", "features1", "features2"])
 
     dataset = [[features[i], m_label[i], nm_label[i]] for i in range(len(m_label))]
     return dataset
@@ -257,17 +257,34 @@ if __name__ == "__main__":
     # load base_directory list
     dirs = com.select_dirs(param=param, mode=mode)
 
+    machine_list = []
+    for dir in dirs:
+        machine = os.path.split(dir)[1]
+        machine_list.append(machine)
+
+    print("Found machine types:")
+    for machine in machine_list:
+        print(machine)
+
+    print()
+    print("Which machine model would you like to train")
+    target_machine = input()
+
     # loop of the base directory
-    for idx, target_dir in enumerate(dirs):
+    for target_dir in dirs:
+        machine_type = os.path.split(target_dir)[1]
+        if machine_type != target_machine:
+            continue
+
         print("\n===========================")
-        print("[{idx}/{total}] {dirname}".format(dirname=target_dir, idx=idx+1, total=len(dirs)))
+        print("{dirname}".format(dirname=target_dir))
+        #print("[{idx}/{total}] {dirname}".format(dirname=target_dir, idx=idx+1, total=len(dirs)))
 
         # set path
         '''
         model_file_path change to .pt
         '''
         
-        machine_type = os.path.split(target_dir)[1]
         encoder_file_path = "{model}/encoder_{machine_type}.pt".format(model=param["model_directory"]["idcae"],
                                                                      machine_type=machine_type)
         decoder_file_path = "{model}/decoder_{machine_type}.pt".format(model=param["model_directory"]["idcae"],
@@ -364,12 +381,10 @@ if __name__ == "__main__":
         en_train_loss_list = []
         en_val_loss_list = []
 
-        en_loss_fn = nn.CrossEntropyLoss(reduction='sum')
-        # ToyCar
-        # en_optim = torch.optim.SGD(encoder.parameters(), lr=3e-6, weight_decay=1e-7)
+        lr = param["train_param"][machine_type]["encoder"]["lr"]
 
-        # else:
-        en_optim = torch.optim.SGD(encoder.parameters(), lr=1e-6, weight_decay=1e-7)
+        en_loss_fn = nn.CrossEntropyLoss(reduction='sum')
+        en_optim = torch.optim.SGD(encoder.parameters(), lr, weight_decay=1e-7)
         encoder = encoder.to(device=device, dtype=torch.float32)
         if os.path.exists(encoder_file_path):
             print("Encoder exists...")
@@ -448,8 +463,11 @@ if __name__ == "__main__":
         decoder = decoder.to(device=device, dtype=torch.float32)  
         de_loss_fn = nn.MSELoss()
 
-        de_optim = torch.optim.SGD(decoder.parameters(), lr=5e-4, weight_decay=1e-7)
-        scheduler = lr_sched.StepLR(optimizer=de_optim, step_size=5, gamma=0.90)
+        lr = param["train_param"][machine_type]["decoder"]["lr"]
+        gamma = lr = param["train_param"][machine_type]["decoder"]["gamma"]
+
+        de_optim = torch.optim.SGD(decoder.parameters(), lr=lr, weight_decay=1e-7)
+        scheduler = lr_sched.StepLR(optimizer=de_optim, step_size=5, gamma=gamma)
         alpha = 0.75
         C = 5
 
