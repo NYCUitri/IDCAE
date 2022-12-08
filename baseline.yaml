@@ -24,6 +24,31 @@ feature:
     hop_length: 512
     power: 2.0
 
+train_param:
+  ToyCar:
+    encoder: 
+      lr: 0.000003
+    decoder:
+      lr: 0.001
+      gamma: 0.9
+  fan:
+    encoder:
+      lr: 0.000001
+    decoder:
+      lr: 0.0003
+      gamma: 0.9
+  slider:
+    encoder:
+      lr: 0.000001
+    decoder:
+      lr: 0.0005
+      gamma: 0.9
+  pump: 
+    encoder:
+      lr: 0.000001
+    decoder:
+      lr: 0.001
+      gamma: 0.8
 
 fit:
   baseline:
