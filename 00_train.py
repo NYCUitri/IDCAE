@@ -102,15 +102,25 @@ def list_to_vector_array(file_list,
     msg : str ( default = "calc..." )
         description for tqdm.
         this parameter will be input into "desc" param at tqdm.
+    cls_label : the label of the type of machine, ex. if training model is pump
+                and training machine id are pump00, pump02, pump04, pump06, then 
+                cls_label of pump00 is 0, pump02 is 1, pump04 is 2, pump06 is 3
+    cls_num : how many different ids of certain type of machine are used
+              ex. cls_num of the example above is 4
 
-    return : numpy.array( numpy.array( float ) )
-        vector array for training (this function is not used for test.)
-        * dataset.shape = (number of feature vectors, dimensions of feature vectors)
+    During open-set training, we need match label and non match label, which non match label is 
+    random choose from labels other than the match label
+
+    return : a list of data frames, each data frame contains feature, match label, and randomly picked non match label
+             feature, match label, and non match label are numpy.array, label and non match label are one hot labels
+
     """
     # calculate the number of dimensions
     dims = n_mels * frames
 
-    # iterate file_to_vector_array()
+    '''
+    create feature vectors from audio files
+    '''
     for idx in tqdm(range(len(file_list)), desc=msg):
     #for idx in range(len(file_list)):
         vector_array = com.file_to_vector_array(file_list[idx],
@@ -126,13 +136,11 @@ def list_to_vector_array(file_list,
         del vector_array
         gc.collect()
 
-    #m_label = np.empty((features.shape[0], cls_num), dtype=np.float32)
-    #nm_label = np.empty((features.shape[0], cls_num), dtype=np.float32)
+    '''
+    create match and non match label
+    '''
     m_label = np.zeros((features.shape[0], cls_num), dtype=np.float32)
     nm_label = np.zeros((features.shape[0], cls_num), dtype=np.float32)
-    
-    #m_label.fill(-1)
-    #nm_label.fill(-1)
 
     for i in range(len(m_label)):
         nm_indices = []
@@ -144,8 +152,10 @@ def list_to_vector_array(file_list,
 
         nm_idx = random.choice(nm_indices)
         nm_label[i][nm_idx] = 1
+
     from reconstruct_img import reconstruct_spectrogram
     reconstruct_spectrogram([features[0], features[1], features[2]], ["features0", "features1", "features2"])
+
     dataset = [[features[i], m_label[i], nm_label[i]] for i in range(len(m_label))]
     return dataset
         
@@ -209,12 +219,15 @@ def file_list_generator(target_dir,
                                                                                 id_name=id_name,
                                                                                 ext=ext)))
 
-    # files = numpy.concatenate((normal_files, anomaly_files), axis=0)
-    # labels = numpy.concatenate((normal_labels, anomaly_labels), axis=0)
+    
     random.shuffle(files)
+    '''
+    control number of training files
+    '''
     # files = files[:600]
     files = files[:300]
     #files = files[:100]
+
     com.logger.info("train_file  num : {num}".format(num=len(files)))
     if len(files) == 0:
         com.logger.exception("no_wav_file!!")
@@ -267,6 +280,9 @@ if __name__ == "__main__":
             com.logger.info("model exists")
             continue
         
+        '''
+        For tensorboard
+        '''
         writer = SummaryWriter(comment="_"+machine_type)
         # generate dataset
         print("============== DATASET_GENERATOR ==============")
@@ -329,6 +345,9 @@ if __name__ == "__main__":
         val_size = int(len(dataset) * val_split)
         train_size = len(dataset) - val_size
 
+        '''
+        Train batches contain: feature, match label, non match label
+        '''
         train_dataset, valid_dataset = random_split(dataset, [train_size, val_size])
         train_batches = DataLoader(dataset=MelDataLoader(train_dataset), batch_size=batch_size, shuffle=True)
         val_batches = DataLoader(dataset=MelDataLoader(valid_dataset), batch_size=batch_size, shuffle=True)
@@ -337,6 +356,10 @@ if __name__ == "__main__":
         
         '''
         Encoder Training
+
+        Encoder outputs: latent, output of classifier
+        In encoder training stage, we will use the output of classifier 
+        Train the encoder with Cross Entropy function as loss function
         '''
         en_train_loss_list = []
         en_val_loss_list = []
@@ -406,6 +429,18 @@ if __name__ == "__main__":
             torch.save(encoder.state_dict(), encoder_file_path)
         '''
         Decoder Training
+
+        Decoder output match output (latent conditioned on match label) 
+        and non match output (latent conditioned on non match label)
+
+        In this stage, we send pre-processed audio data to encoder, and take the latent as input of decoder
+        The decoder contains the conditioning layer, with label vector as input(match and non match)
+
+        Before sending the vector to that layer, first change 0 to -1 and then send the vector to the layer
+        For example, if the label vector is [1, 0, 0, 0], then the input label vector is [1, -1, -1, -1]
+
+        Calculate MSE Loss between match output and input data and between non match output and constant vector C
+        Finally, the loss is alpha * (match loss) + (1-alpha) * (non match loss)
         '''
         de_train_loss_list = []
         de_val_loss_list = []
@@ -534,23 +569,6 @@ if __name__ == "__main__":
         torch.save(decoder.state_dict(), decoder_file_path)
 
         com.logger.info("save_model -> en: {en_path} de: {de_path}".format(en_path=encoder_file_path, de_path=decoder_file_path))
-
-        from reconstruct_img import reconstruct_spectrogram
-        # from evt import evt
-        reconstruct_spectrogram([m_output_toimg[0], m_output_toimg[1], m_output_toimg[2], nm_output_toimg[0], nm_output_toimg[1], nm_output_toimg[2]], ["m0", "m1", "m2", "nm0", "nm1", "nm2"])
-        # latent_distrbution(latents_list=[m_lost_list, nm_lost_list], labels=["match", "non_match"], name="m_nm_output")
-        n_file_name = "./loss_record/" + machine_type + "_normal_loss.json"
-        with open(n_file_name, 'w', encoding='utf-8') as f:
-            json.dump(list(m_lost_list.astype(float)), f, ensure_ascii=False)
-        an_file_name = "./loss_record/" + machine_type + "_anormal_loss.json"
-        with open(an_file_name, 'w', encoding='utf-8') as f:
-            json.dump(list(nm_lost_list.astype(float)), f, ensure_ascii=False)
-        # get threshold
-        # threshold = get_threshold(n_file_name, an_file_name, machine_type)
-        # print(threshold)
-        # file_name = "./loss_record/" + machine_type + "_threshold.json"
-        # with open(file_name, 'w', encoding='utf-8') as f:
-        #     json.dump(threshold, f, ensure_ascii=False)
 
         del dataset, train_batches, val_batches
         gc.collect()

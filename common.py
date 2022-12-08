@@ -149,10 +149,6 @@ def file_to_vector_array(file_name,
     # 03 convert melspectrogram to log mel energy
     log_mel_spectrogram = 20.0 / power * numpy.log10(mel_spectrogram + sys.float_info.epsilon)
     
-
-    # 03-1 convert to db unit
-    #log_mel_spectrogram = librosa.power_to_db(mel_spectrogram)
-    
     # 04 calculate total vector size
     log_mel_spectrogram = log_mel_spectrogram.astype("float32")
     vector_array_size = len(log_mel_spectrogram[0, :]) - frames + 1
@@ -165,7 +161,7 @@ def file_to_vector_array(file_name,
 
     vector_array = numpy.zeros((vector_array_size, dims), dtype=numpy.float32)
 
-    # 07 normalization
+    # 07 standardization
     mean = numpy.mean(log_mel_spectrogram, dtype=numpy.float32, axis=0, keepdims=True)
     std = numpy.std(log_mel_spectrogram, dtype=numpy.float32, axis=0, keepdims=True)
     log_mel_spectrogram = (log_mel_spectrogram - mean) / std

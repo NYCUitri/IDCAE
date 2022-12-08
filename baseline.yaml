@@ -1,5 +1,5 @@
-dev_directory : /mnt/Directory/dev_data
-eval_directory : /mnt/Directory/eval_data
+dev_directory : ./dev_data
+eval_directory : ./eval_data
 model_directory: 
   baseline: ./model
   idcae: ./model_idcae
@@ -31,6 +31,6 @@ fit:
     batch_size : 512
     validation_split : 0.1
   idcae:
-    epochs: 20
-    batch_size: 256
+    epochs: 100
+    batch_size: 512
     validation_split: 0.1

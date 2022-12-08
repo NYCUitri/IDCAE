@@ -260,7 +260,8 @@ if __name__ == "__main__":
 
 
                 '''
-                change: testing
+                During testing, we try all label (one-hot) and take the smallest reconstruction error as anomaly score
+                Given ground truth and anomaly score, use sklearn metric roc_auc_score to get auc and pauc
                 '''
                 with torch.no_grad():
                     features = torch.Tensor(vector_array).to(device=device, non_blocking=True, dtype=torch.float32)

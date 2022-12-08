@@ -78,7 +78,9 @@ Unzip the downloaded files and make the directory structure as follows:
     - /00_train.py
     - /01_test.py
     - /common.py
-    - /keras_model.py
+    - /Dataset.py
+    - /reconstruct_img.py
+    - /pytorch_model.py
     - /baseline.yaml
     - /readme.md
 
@@ -211,9 +213,6 @@ In addition, we checked performing on **Ubuntu 16.04 LTS**, **18.04 LTS**, **Cen
 - FFmpeg
 
 ### Python packages
-- Keras                         == 2.1.6
-- Keras-Applications            == 1.0.8
-- Keras-Preprocessing           == 1.0.5
 - matplotlib                    == 3.0.3
 - numpy                         == 1.16.0
 - PyYAML                        == 5.1
@@ -223,3 +222,6 @@ In addition, we checked performing on **Ubuntu 16.04 LTS**, **18.04 LTS**, **Cen
 - setuptools                    == 41.0.0
 - tensorflow                    == 1.15.0
 - tqdm                          == 4.23.4
+- torch                         == 1.1.0
+- torchsummary                  == 1.5.1
+- numba                         == 0.48.0
