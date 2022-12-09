@@ -260,7 +260,9 @@ if __name__ == "__main__":
 
 
                 '''
-                During testing, we try all label (one-hot) and take the smallest reconstruction error as anomaly score
+                During testing, we try all labels and take the smallest reconstruction error as anomaly score
+                Like the process in training, the label contains 1 and -1
+                ex. label = [-1, -1, 1, -1], then it means we try label number 2
                 Given ground truth and anomaly score, use sklearn metric roc_auc_score to get auc and pauc
                 '''
                 with torch.no_grad():
