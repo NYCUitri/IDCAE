@@ -267,13 +267,15 @@ if __name__ == "__main__":
                     features = torch.Tensor(vector_array).to(device=device, non_blocking=True, dtype=torch.float32)
                     label = np.zeros(shape=(features.shape[0], len(machine_id_list)))
                     label = torch.Tensor(label).to(device=device, non_blocking=True, dtype=torch.float32)
+                    label = label - 1
+
                     reconstruction_list = np.zeros((len(machine_id_list), ))
                     latent, cls_output = encoder(features)
                     for i in range(len(machine_id_list)):
                         if i == 0:
                             label[:, 0] = 1
                         else:
-                            label[:, i-1] = 0
+                            label[:, i-1] = -1
                             label[:, i] = 1
                         rec, nm_rec = decoder(latent, label, label)
                         error = loss_fn(rec, features)
